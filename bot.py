@@ -33,7 +33,8 @@ async def handle_vimeo_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Handle password input and download the video using yt-dlp
 async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
-    password = update.message.text
+    password = update.message.text.strip()  # Strip any unnecessary spaces
+
     url = user_data[user_id]["url"]
 
     # Store the password provided by the user
@@ -42,10 +43,12 @@ async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Use yt-dlp to download the Vimeo video
     try:
         ydl_opts = {
-            'format': 'bestaudio[ext=m4a]+bestaudio[ext=mp4]/bestvideo[height<=720]+bestaudio/best',
-            'outtmpl': 'downloads/%(title)s.%(ext)s',
-            'noplaylist': True,
-            'password': password,  # Pass the user-provided password
+    'format': 'bestaudio[ext=m4a]+bestaudio[ext=mp4]/bestvideo[height<=720]+bestaudio/best',
+    'outtmpl': 'downloads/%(title)s.%(ext)s',
+    'noplaylist': True,
+    'video_password': password,  # This is the correct way to pass the video password
+}
+
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
