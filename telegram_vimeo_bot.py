@@ -47,7 +47,7 @@ def main():
     application.add_handler(CommandHandler("download", download_video))
 
     # Set up the webhook URL (adjust the URL based on your Render app URL)
-    webhook_url = "https://<your-app-name>.onrender.com/"  # Replace with your Render app URL
+    webhook_url = "https://ytdlfinalme.onrender.com/"  # Replace with your Render app URL
 
     # Set the webhook
     application.run_webhook(listen="0.0.0.0", port=5000, url_path="", webhook_url=webhook_url)
