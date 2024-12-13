@@ -1,7 +1,7 @@
 import os
-import yt_dlp
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler
+import yt_dlp
 
 # Define states for the conversation handler
 VIMEO_USERNAME_STATE = 1
@@ -15,6 +15,7 @@ user_data = {}
 # Start command that sends an introduction message
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Hi! Please send me your Vimeo username.")
+    return VIMEO_USERNAME_STATE
 
 # Ask for Vimeo Username
 async def handle_vimeo_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
