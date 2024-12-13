@@ -1,12 +1,7 @@
 import os
-
-DOWNLOAD_DIR = 'downloads/'
-if not os.path.exists(DOWNLOAD_DIR):
-    os.makedirs(DOWNLOAD_DIR)
-
 import subprocess
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext, ConversationHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler
 
 # Add your Telegram bot token here
 TELEGRAM_TOKEN = 'TELEGRAM_TOKEN'
