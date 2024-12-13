@@ -41,6 +41,11 @@ async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Store the password provided by the user
     user_data[user_id]["password"] = password
 
+    # Check if the password is valid (this is optional depending on your scenario)
+    if not password:
+        await update.message.reply_text("Password cannot be empty! Please provide the correct video password.")
+        return PASSWORD_STATE  # Ask again for password if it's empty
+
     # Get Vimeo username and password from environment variables
     vimeo_username = VIMEO_USERNAME
     vimeo_password = VIMEO_PASSWORD
@@ -51,11 +56,13 @@ async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'format': 'bestaudio[ext=m4a]+bestaudio[ext=mp4]/bestvideo[height<=720]+bestaudio/best',
             'outtmpl': 'downloads/%(title)s.%(ext)s',
             'noplaylist': True,
+            'username': vimeo_username,
+            'password': vimeo_password,
             'video_password': password,  # Pass the video password provided by the user
-            'username': vimeo_username,  # Pass Vimeo username
-            'password': vimeo_password,  # Pass Vimeo account password
+            'verbose': True,  # Enable verbose logging for debugging
         }
 
+        # Attempt to download the video
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
             video_title = info_dict.get('title', 'Video')
