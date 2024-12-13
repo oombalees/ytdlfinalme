@@ -3,52 +3,71 @@ import yt_dlp
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler
 
-# Environment variables for security
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-VIMEO_USERNAME = os.getenv('VIMEO_USERNAME')
-VIMEO_PASSWORD = os.getenv('VIMEO_PASSWORD')
-
 # Define states for the conversation handler
-URL_STATE = 1
-PASSWORD_STATE = 2
+VIMEO_USERNAME_STATE = 1
+VIMEO_PASSWORD_STATE = 2
+URL_STATE = 3
+VIDEO_PASSWORD_STATE = 4
 
-# Dictionary to store the Vimeo URL and password temporarily for each user
+# Dictionary to store user data temporarily
 user_data = {}
 
 # Start command that sends an introduction message
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hi! Send me a Vimeo URL, and I'll download it for you.")
+    await update.message.reply_text("Hi! Please send me your Vimeo username.")
+
+# Ask for Vimeo Username
+async def handle_vimeo_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    username = update.message.text.strip()
+
+    if username:
+        user_data[update.message.from_user.id] = {"vimeo_username": username, "vimeo_password": None, "url": None, "video_password": None}
+        await update.message.reply_text("Now, please send me your Vimeo password.")
+        return VIMEO_PASSWORD_STATE
+    else:
+        await update.message.reply_text("Please provide a valid Vimeo username.")
+        return VIMEO_USERNAME_STATE
+
+# Ask for Vimeo Password
+async def handle_vimeo_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    password = update.message.text.strip()
+
+    if password:
+        user_data[update.message.from_user.id]["vimeo_password"] = password
+        await update.message.reply_text("Great! Now send me the Vimeo URL of the video you'd like to download.")
+        return URL_STATE
+    else:
+        await update.message.reply_text("Please provide a valid Vimeo password.")
+        return VIMEO_PASSWORD_STATE
 
 # Handle Vimeo URL input
 async def handle_vimeo_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    url = update.message.text
-    
-    # Check if the message contains a valid Vimeo URL (basic check for 'vimeo' in URL)
+    url = update.message.text.strip()
+
+    # Check if the message contains a valid Vimeo URL
     if 'vimeo.com' in url:
-        user_data[update.message.from_user.id] = {"url": url, "password": None}
-        await update.message.reply_text("Please provide the video password (if applicable):")
-        return PASSWORD_STATE
+        user_data[update.message.from_user.id]["url"] = url
+        await update.message.reply_text("If the video is password-protected, please provide the video password.")
+        return VIDEO_PASSWORD_STATE
     else:
         await update.message.reply_text("Please provide a valid Vimeo URL.")
         return URL_STATE
 
-# Handle password input and download the video using yt-dlp
-async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Handle video password input and download the video using yt-dlp
+async def handle_video_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     password = update.message.text.strip()  # Strip spaces from password
+
+    if password:
+        user_data[user_id]["video_password"] = password
+    else:
+        user_data[user_id]["video_password"] = None
+
+    # Get Vimeo credentials from user data
+    vimeo_username = user_data[user_id]["vimeo_username"]
+    vimeo_password = user_data[user_id]["vimeo_password"]
     url = user_data[user_id]["url"]
-
-    # Store the password provided by the user
-    user_data[user_id]["password"] = password
-
-    # Check if the password is valid (this is optional depending on your scenario)
-    if not password:
-        await update.message.reply_text("Password cannot be empty! Please provide the correct video password.")
-        return PASSWORD_STATE  # Ask again for password if it's empty
-
-    # Get Vimeo username and password from environment variables
-    vimeo_username = VIMEO_USERNAME
-    vimeo_password = VIMEO_PASSWORD
+    video_password = user_data[user_id]["video_password"]
 
     # Use yt-dlp to download the Vimeo video
     try:
@@ -58,7 +77,7 @@ async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'noplaylist': True,
             'username': vimeo_username,
             'password': vimeo_password,
-            'video_password': password,  # Pass the video password provided by the user
+            'video_password': video_password,  # Pass the video password provided by the user
             'verbose': True,  # Enable verbose logging for debugging
         }
 
@@ -84,15 +103,16 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     # Create the Application and pass the bot token
-    application = Application.builder().token(TELEGRAM_TOKEN).build()
+    application = Application.builder().token(os.getenv('TELEGRAM_TOKEN')).build()
 
     # Create the ConversationHandler
     conversation_handler = ConversationHandler(
-        entry_points=[CommandHandler("start", start),
-                      MessageHandler(filters.TEXT & ~filters.COMMAND, handle_vimeo_url)],
+        entry_points=[CommandHandler("start", start)],
         states={
+            VIMEO_USERNAME_STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_vimeo_username)],
+            VIMEO_PASSWORD_STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_vimeo_password)],
             URL_STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_vimeo_url)],
-            PASSWORD_STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_password)],
+            VIDEO_PASSWORD_STATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_video_password)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )
