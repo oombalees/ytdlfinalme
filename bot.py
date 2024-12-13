@@ -9,17 +9,21 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 # Dictionary to store the Vimeo URL and password temporarily for each user
 user_data = {}
 
+# State management constants
+URL_STATE = 1
+PASSWORD_STATE = 2
+
 # Start command that sends an introduction message
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Hi! Send me a Vimeo URL, and I'll download it for you.")
 
-# Handle Vimeo URL input, ask for password
+# Handle Vimeo URL input
 async def handle_vimeo_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text
     
     # Check if the message contains a valid Vimeo URL (basic check for 'vimeo' in URL)
     if 'vimeo.com' in url:
-        user_data[update.message.from_user.id] = {"url": url, "password": None}
+        user_data[update.message.from_user.id] = {"url": url, "password": None, "state": PASSWORD_STATE}
         await update.message.reply_text("Please provide the video password (if applicable):")
     else:
         await update.message.reply_text("Please provide a valid Vimeo URL.")
@@ -27,7 +31,7 @@ async def handle_vimeo_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Handle password input and download the video using yt-dlp
 async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
-    if user_id in user_data and user_data[user_id]["url"]:
+    if user_id in user_data and user_data[user_id]["state"] == PASSWORD_STATE:
         password = update.message.text
         url = user_data[user_id]["url"]
 
@@ -48,7 +52,7 @@ async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 video_title = info_dict.get('title', 'Video')
                 await update.message.reply_text(f"Downloaded {video_title} successfully!")
 
-            # Clear the stored data for the user
+            # Clear the stored data for the user after download
             del user_data[user_id]
 
         except Exception as e:
