@@ -4,11 +4,11 @@ from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, filters, CallbackContext, ConversationHandler
 
 # Add your Telegram bot token here
-TELEGRAM_TOKEN = 'YOUR_BOT_TOKEN'
+TELEGRAM_TOKEN = '7793303973:AAE4BjqcgXuPjqrYmi8jxzkEGyfY6f5sFoM'
 
 # Your Vimeo credentials (only the username and password for the account)
-VIMEO_USERNAME = 'your_vimeo_username'
-VIMEO_PASSWORD = 'your_vimeo_password'
+VIMEO_USERNAME = 'sallushakeel@gmail.com'
+VIMEO_PASSWORD = 'sallu@2025'
 
 # Directory to store videos
 DOWNLOAD_DIR = 'downloads/'
