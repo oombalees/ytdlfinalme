@@ -6,8 +6,8 @@ import yt_dlp
 # Environment variables for security
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 
-# Dictionary to store the Vimeo URL and password temporarily
-user_passwords = {}
+# Dictionary to store the Vimeo URL and password temporarily for each user
+user_data = {}
 
 # Start command that sends an introduction message
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -16,15 +16,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Handle Vimeo URL input, ask for password
 async def handle_vimeo_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
     url = update.message.text
-    user_passwords[update.message.from_user.id] = {"url": url}
-    await update.message.reply_text("Please provide the video password:")
+    
+    # Check if the message contains a valid Vimeo URL (basic check for 'vimeo' in URL)
+    if 'vimeo.com' in url:
+        user_data[update.message.from_user.id] = {"url": url, "password": None}
+        await update.message.reply_text("Please provide the video password (if applicable):")
+    else:
+        await update.message.reply_text("Please provide a valid Vimeo URL.")
 
 # Handle password input and download the video using yt-dlp
 async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
-    if user_id in user_passwords and "url" in user_passwords[user_id]:
+    if user_id in user_data and user_data[user_id]["url"]:
         password = update.message.text
-        url = user_passwords[user_id]["url"]
+        url = user_data[user_id]["url"]
+
+        # Store the password provided by the user
+        user_data[user_id]["password"] = password
 
         # Use yt-dlp to download the Vimeo video
         try:
@@ -40,12 +48,12 @@ async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 video_title = info_dict.get('title', 'Video')
                 await update.message.reply_text(f"Downloaded {video_title} successfully!")
 
-            # Clear the stored password after download
-            del user_passwords[user_id]
+            # Clear the stored data for the user
+            del user_data[user_id]
 
         except Exception as e:
             await update.message.reply_text(f"Error downloading video: {str(e)}")
-            del user_passwords[user_id]  # Clear password on failure
+            del user_data[user_id]  # Clear password and URL after failure
 
     else:
         await update.message.reply_text("You need to send a valid Vimeo URL first.")
