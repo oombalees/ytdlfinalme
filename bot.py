@@ -1,10 +1,12 @@
 import os
+import yt_dlp
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, ConversationHandler
-import yt_dlp
 
 # Environment variables for security
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
+VIMEO_USERNAME = os.getenv('VIMEO_USERNAME')
+VIMEO_PASSWORD = os.getenv('VIMEO_PASSWORD')
 
 # Define states for the conversation handler
 URL_STATE = 1
@@ -33,11 +35,15 @@ async def handle_vimeo_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Handle password input and download the video using yt-dlp
 async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
-    password = update.message.text.strip()  # Ensure no extra spaces in password
+    password = update.message.text.strip()  # Strip spaces from password
     url = user_data[user_id]["url"]
 
     # Store the password provided by the user
     user_data[user_id]["password"] = password
+
+    # Get Vimeo username and password from environment variables
+    vimeo_username = VIMEO_USERNAME
+    vimeo_password = VIMEO_PASSWORD
 
     # Use yt-dlp to download the Vimeo video
     try:
@@ -45,11 +51,10 @@ async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'format': 'bestaudio[ext=m4a]+bestaudio[ext=mp4]/bestvideo[height<=720]+bestaudio/best',
             'outtmpl': 'downloads/%(title)s.%(ext)s',
             'noplaylist': True,
-            'video_password': password,  # Correct option to pass the password
+            'video_password': password,  # Pass the video password provided by the user
+            'username': vimeo_username,  # Pass Vimeo username
+            'password': vimeo_password,  # Pass Vimeo account password
         }
-
-        # Debugging - Print password and URL to verify
-        print(f"Attempting to download video from: {url} with password: {password}")
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
@@ -64,7 +69,6 @@ async def handle_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
         del user_data[user_id]  # Clear password and URL after failure
 
     return ConversationHandler.END
-
 
 # If the conversation ends (user input invalid or completed)
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
